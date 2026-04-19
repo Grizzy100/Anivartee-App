@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     splashLogo: {
-        width: 180,
-        height: 180,
+        width: 230,
+        height: 230,
         backgroundColor: 'transparent',
     },
     splashText: {
@@ -102,7 +102,6 @@ const styles = StyleSheet.create({
         fontSize: 32,
         color: '#FFFFFF',
         fontFamily: 'Orbitron_700Bold',
-        letterSpacing: 4,
-        textTransform: 'uppercase',
+        letterSpacing: 2,
     },
 });

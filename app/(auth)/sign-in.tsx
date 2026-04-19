@@ -79,6 +79,9 @@ export default function SignInScreen() {
                     onChangeText={setEmail}
                     keyboardType="email-address"
                     autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="email"
+                    textContentType="emailAddress"
                   />
                 </View>
 
@@ -90,6 +93,10 @@ export default function SignInScreen() {
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="password"
+                    textContentType="password"
                   />
                   <Pressable
                     onPress={() => setShowPassword(!showPassword)}
@@ -117,15 +124,12 @@ export default function SignInScreen() {
               </View>
 
               <View style={styles.footer}>
-                <Text style={styles.footerText}>
-                  Don't have an account?{' '}
-                  <Text
-                    style={styles.link}
-                    onPress={() => router.push('/(auth)/sign-up')}
-                  >
-                    Sign up
-                  </Text>
-                </Text>
+                <View style={styles.footerRow}>
+                  <Text style={styles.footerText}>Don't have an account?</Text>
+                  <Pressable onPress={() => router.push('/(auth)/sign-up')} hitSlop={8}>
+                    <Text style={styles.link}>Sign up</Text>
+                  </Pressable>
+                </View>
               </View>
             </GlassCard>
           </ScrollView>
@@ -224,6 +228,11 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 24,
     alignItems: 'center',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   footerText: {
     color: 'rgba(255,255,255,0.5)',

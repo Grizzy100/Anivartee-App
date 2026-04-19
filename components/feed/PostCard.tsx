@@ -112,7 +112,7 @@ export default function PostCard({
       return;
     }
     if (!isDetailView) {
-      router.push(`/post/${post.id}`);
+      router.push({ pathname: '/posts/[id]' as any, params: { id: post.id } });
     }
   };
 
@@ -226,7 +226,7 @@ export default function PostCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.bgSecondary,
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.borderDefault,
     padding: Spacing.base,
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   acceptBtn: {
     flex: 1,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 6,
     backgroundColor: Colors.accentPrimary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   rejectBtn: {
     flex: 1,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 6,
     backgroundColor: Colors.bgTertiary,
     borderWidth: 1,
     borderColor: Colors.borderDefault,
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   claimBtn: {
     flex: 1,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 6,
     backgroundColor: Colors.greenValidated,
     alignItems: 'center',
     justifyContent: 'center',
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   ignoreBtn: {
     flex: 1,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 6,
     backgroundColor: Colors.redDebunked + '20',
     alignItems: 'center',
     justifyContent: 'center',

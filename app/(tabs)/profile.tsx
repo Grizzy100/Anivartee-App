@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +19,8 @@ const SORT_OPTIONS = [
 ];
 
 export default function ProfileScreen() {
-  const { user, session } = useSession();
+  const { user, session, signOut } = useSession();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState('All');
@@ -57,6 +59,11 @@ export default function ProfileScreen() {
     }, [loadProfileData])
   );
 
+  const handleLogout = useCallback(async () => {
+    await signOut();
+    router.replace('/(auth)/sign-in');
+  }, [signOut, router]);
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.container}>
@@ -82,8 +89,8 @@ export default function ProfileScreen() {
                   role: user?.role || 'USER',
                   rank: stats?.rank || user?.rank || 'NOVICE',
                   points: stats?.points || user?.points || 0,
-                  postsCount: stats?.totalPosts || user?.postsCount || 0,
-                  likesCount: stats?.totalLikes || user?.likesCount || 0,
+                  postsCount: stats?.postsCount || stats?.totalPosts || user?.postsCount || 0,
+                  likesCount: stats?.totalLikesReceived || stats?.totalLikes || user?.likesCount || 0,
                   level: stats?.level || 1,
                 }}
               />
@@ -98,6 +105,11 @@ export default function ProfileScreen() {
                   <Ionicons name="chevron-down" size={14} color={DASH_COLORS.subtext} style={{ marginLeft: 4 }} />
                 </Pressable>
               </View>
+
+              <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+                <Ionicons name="log-out-outline" size={16} color={DASH_COLORS.text} />
+                <Text style={styles.logoutText}>Logout</Text>
+              </Pressable>
             </>
           }
           renderItem={({ item }) => <DashboardPostCard post={item} />}
@@ -155,6 +167,24 @@ const styles = StyleSheet.create({
     color: DASH_COLORS.text,
     fontWeight: 'bold',
     fontSize: 12,
+  },
+  logoutBtn: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DASH_SPACING.xs,
+    borderWidth: 1,
+    borderColor: DASH_COLORS.border,
+    backgroundColor: DASH_COLORS.card,
+    borderRadius: 20,
+    paddingHorizontal: DASH_SPACING.md,
+    paddingVertical: DASH_SPACING.xs,
+    marginBottom: DASH_SPACING.md,
+  },
+  logoutText: {
+    color: DASH_COLORS.text,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   emptyContainer: {
     alignItems: 'center',

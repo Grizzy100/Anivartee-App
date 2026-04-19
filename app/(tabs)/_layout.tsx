@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Tabs } from 'expo-router';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,7 +21,20 @@ import ActivityCalendarSheet from '../../components/calendar/ActivityCalendarShe
 import { Colors } from '../../constants/colors';
 import { Fonts } from '../../constants/fonts';
 import { useSession } from '../../ctx';
+import { getMyPoints } from '../../lib/api/dashboardApi';
 import { createPost } from '../../lib/api/postApi';
+
+type ComposerLimits = {
+  maxHeaderLength: number;
+  maxDescriptionLength: number;
+  postPoints: number;
+};
+
+const DEFAULT_COMPOSER_LIMITS: ComposerLimits = {
+  maxHeaderLength: 80,
+  maxDescriptionLength: 200,
+  postPoints: 2,
+};
 
 export default function TabLayout() {
   const { session, user } = useSession();
@@ -36,6 +49,29 @@ export default function TabLayout() {
   const [category, setCategory] = useState<'WAR' | 'FOOD' | 'SOCIAL' | 'OTHER'>('OTHER');
   const [submitting, setSubmitting] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [composerLimits, setComposerLimits] = useState<ComposerLimits>(DEFAULT_COMPOSER_LIMITS);
+
+  useEffect(() => {
+    if (!session) {
+      setComposerLimits(DEFAULT_COMPOSER_LIMITS);
+      return;
+    }
+
+    getMyPoints(session)
+      .then((response) => {
+        const limits = (response.data as any)?.limits;
+        if (!limits) return;
+
+        setComposerLimits({
+          maxHeaderLength: Number(limits.maxHeaderLength) || DEFAULT_COMPOSER_LIMITS.maxHeaderLength,
+          maxDescriptionLength: Number(limits.maxDescriptionLength) || DEFAULT_COMPOSER_LIMITS.maxDescriptionLength,
+          postPoints: Number(limits.postPoints) || DEFAULT_COMPOSER_LIMITS.postPoints,
+        });
+      })
+      .catch(() => {
+        setComposerLimits(DEFAULT_COMPOSER_LIMITS);
+      });
+  }, [session]);
 
   const openCreateSheet = useCallback(() => {
     createSheetRef.current?.expand();
@@ -52,6 +88,14 @@ export default function TabLayout() {
   const handleSubmit = async () => {
     if (!title.trim() || !url.trim()) {
       Alert.alert('Missing fields', 'Title and URL are required.');
+      return;
+    }
+    if (title.trim().length > composerLimits.maxHeaderLength) {
+      Alert.alert('Title too long', `Title must be ${composerLimits.maxHeaderLength} characters or less for your rank.`);
+      return;
+    }
+    if (description.trim().length > composerLimits.maxDescriptionLength) {
+      Alert.alert('Description too long', `Description must be ${composerLimits.maxDescriptionLength} characters or less for your rank.`);
       return;
     }
     if (!session) {
@@ -150,7 +194,6 @@ export default function TabLayout() {
           name="ranking"
           options={{
             title: 'Ranking',
-            href: user?.role === 'FACT_CHECKER' ? null : undefined,
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} size={24} color={color} />
             ),
@@ -171,7 +214,7 @@ export default function TabLayout() {
           name="moderation"
           options={{
             title: 'Moderation',
-            href: user?.role === 'FACT_CHECKER' ? undefined : null,
+            href: null, // Hidden from tab bar as per user request
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? 'shield' : 'shield-outline'} size={24} color={color} />
             ),
@@ -217,8 +260,9 @@ export default function TabLayout() {
               onChangeText={setTitle}
               placeholder="What is the claim or headline?"
               placeholderTextColor={Colors.textMuted}
-              maxLength={200}
+              maxLength={composerLimits.maxHeaderLength}
             />
+            <Text style={styles.limitText}>{title.trim().length}/{composerLimits.maxHeaderLength}</Text>
 
             <Text style={styles.fieldLabel}>Source URL *</Text>
             <TextInput
@@ -242,9 +286,10 @@ export default function TabLayout() {
               placeholderTextColor={Colors.textMuted}
               multiline
               numberOfLines={4}
-              maxLength={500}
+              maxLength={composerLimits.maxDescriptionLength}
               textAlignVertical="top"
             />
+            <Text style={styles.limitText}>{description.trim().length}/{composerLimits.maxDescriptionLength}</Text>
 
             <Text style={styles.fieldLabel}>Category</Text>
             <View style={styles.categoryRow}>
@@ -264,6 +309,7 @@ export default function TabLayout() {
               disabled={submitting}>
               {submitting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Submit for Review -&gt;</Text>}
             </TouchableOpacity>
+            <Text style={styles.pointsHint}>Successful post awards +{composerLimits.postPoints} points at your current rank.</Text>
           </KeyboardAvoidingView>
         </BottomSheetScrollView>
       </BottomSheet>
@@ -391,6 +437,14 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     textTransform: 'none',
   },
+  limitText: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    marginTop: -8,
+    marginBottom: 10,
+    fontFamily: Fonts.oxanium,
+    textAlign: 'right',
+  },
   input: {
     backgroundColor: Colors.bgTertiary,
     borderRadius: 10,
@@ -449,5 +503,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
     fontFamily: Fonts.oxaniumBold,
+  },
+  pointsHint: {
+    marginTop: 8,
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontFamily: Fonts.oxanium,
   },
 });

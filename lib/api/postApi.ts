@@ -58,7 +58,19 @@ export async function getUserStats(userId: string, token?: string) {
 
 export async function getUserPosts(userId: string, page: number = 1, status?: string, sortBy?: string, token?: string) {
   const params: any = { page, pageSize: 10 };
-  if (status && status !== 'All') params.status = status.toUpperCase();
+  if (status && status !== 'All') {
+    const statusMap: Record<string, string> = {
+      'PENDING': 'PENDING',
+      'UNDER REVIEW': 'UNDER_REVIEW',
+      'VALIDATED': 'VALIDATED',
+      'DEBUNKED': 'DEBUNKED',
+      'CLAIMED': 'CLAIMED',
+      'NOT VALIDATED': 'NOT_VALIDATED',
+      'NOT_VALIDATED': 'NOT_VALIDATED',
+    };
+    const normalizedStatus = statusMap[status.toUpperCase()] || status.toUpperCase().replace(/\s+/g, '_');
+    params.status = normalizedStatus;
+  }
   if (sortBy) params.sortBy = sortBy.toLowerCase();
 
   const response = await axios.get(`${BASE_URL}/api/posts/user/${userId}`, {

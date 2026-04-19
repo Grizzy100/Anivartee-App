@@ -11,10 +11,12 @@ import {
 import type { PostData } from '../../components/feed/PostCard';
 import PostCard from '../../components/feed/PostCard';
 import Header from '../../components/shared/Header';
+import DashboardTabs, { MainTab, SubTab } from '../../components/dashboard/DashboardTabs';
+import ModerationDashboard from '../../components/dashboard/ModerationDashboard';
 import { Colors } from '../../constants/colors';
 import { Fonts } from '../../constants/fonts';
 import { useSession } from '../../ctx';
-import { getFeed, type FeedFilter } from '../../lib/api/postApi';
+import { getFeed, type FeedFilter, toggleLikePost, toggleFlagPost, toggleSavePost } from '../../lib/api/postApi';
 
 function mapToPostData(raw: any): PostData {
   return {
@@ -51,7 +53,10 @@ const DEMO_POSTS: PostData[] = [
 ];
 
 export default function HomeScreen() {
-  const { session } = useSession();
+  const { session, user } = useSession();
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>('feed');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('queue');
+  
   const [filter, setFilter] = useState<FeedFilter>('all');
   const [posts, setPosts] = useState<PostData[]>([]);
   const [page, setPage] = useState(1);
@@ -61,7 +66,10 @@ export default function HomeScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
 
+  const isFactChecker = user?.role === 'FACT_CHECKER';
+
   const loadFresh = useCallback(async (f: FeedFilter) => {
+    if (activeMainTab !== 'feed') return;
     setLoading(true);
     setPage(1);
     setHasMore(true);
@@ -82,7 +90,7 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [session]);
+  }, [session, activeMainTab]);
 
   useEffect(() => {
     loadFresh(filter);
@@ -95,7 +103,7 @@ export default function HomeScreen() {
   };
 
   const loadMore = async () => {
-    if (loadingMore || !hasMore || isDemo) return;
+    if (loadingMore || !hasMore || isDemo || activeMainTab !== 'feed') return;
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
@@ -113,40 +121,118 @@ export default function HomeScreen() {
     }
   };
 
+  const handleLike = async (post: PostData) => {
+    if (!session) return;
+    try {
+      await toggleLikePost(post.id, !!post.liked, session);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === post.id
+            ? {
+                ...p,
+                liked: !p.liked,
+                totalLikes: (p.totalLikes ?? 0) + (p.liked ? -1 : 1),
+              }
+            : p
+        )
+      );
+    } catch {
+      // Revert or show toast
+    }
+  };
+
+  const handleFlag = async (post: PostData) => {
+    if (!session) return;
+    try {
+      await toggleFlagPost(post.id, !!post.flagged, session);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === post.id ? { ...p, flagged: !p.flagged } : p
+        )
+      );
+    } catch {
+      // silent fail OR alert
+    }
+  };
+
+  const handleSave = async (post: PostData) => {
+    if (!session) return;
+    try {
+      await toggleSavePost(post.id, !!post.saved, session);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === post.id ? { ...p, saved: !p.saved } : p
+        )
+      );
+    } catch {
+      // Revert or show toast
+    }
+  };
+
+  const renderContent = () => {
+    if (activeMainTab === 'moderation' && session) {
+      return <ModerationDashboard session={session} activeSubTab={activeSubTab} />;
+    }
+
+    if (loading) {
+      return (
+        <View style={styles.loadingCenter}>
+          <ActivityIndicator color={Colors.accentPrimary} size="large" />
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <PostCard 
+            post={item} 
+            onLike={handleLike} 
+            onFlag={handleFlag} 
+            onSave={handleSave}
+          />
+        )}
+        ListHeaderComponent={
+          <>
+            {isDemo && (
+              <View style={styles.demoBanner}>
+                <Text style={styles.demoText}>Demo mode - backend unreachable</Text>
+              </View>
+            )}
+          </>
+        }
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator color={Colors.accentPrimary} style={{ marginVertical: 16 }} /> : null
+        }
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.accentPrimary} />
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
+      />
+    );
+  };
+
   return (
     <View style={styles.screen}>
       <Header showLogo showNotification showAvatar={false} />
 
-      {loading ? (
-        <View style={styles.loadingCenter}>
-          <ActivityIndicator color={Colors.accentPrimary} size="large" />
-        </View>
-      ) : (
-        <FlatList
-          data={posts}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PostCard post={item} showModerationActions={false} />}
-          ListHeaderComponent={
-            <>
-              {isDemo && (
-                <View style={styles.demoBanner}>
-                  <Text style={styles.demoText}>Demo mode - backend unreachable</Text>
-                </View>
-              )}
-            </>
-          }
-          ListFooterComponent={
-            loadingMore ? <ActivityIndicator color={Colors.accentPrimary} style={{ marginVertical: 16 }} /> : null
-          }
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.accentPrimary} />
-          }
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.4}
+      {isFactChecker && (
+        <DashboardTabs 
+          activeMainTab={activeMainTab}
+          onMainTabChange={setActiveMainTab}
+          activeSubTab={activeSubTab}
+          onSubTabChange={setActiveSubTab}
         />
       )}
+
+      <View style={{ flex: 1 }}>
+        {renderContent()}
+      </View>
     </View>
   );
 }

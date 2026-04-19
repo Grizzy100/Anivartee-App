@@ -128,15 +128,12 @@ export default function SignUpScreen() {
               </View>
 
               <View style={styles.footer}>
-                <Text style={styles.footerText}>
-                  Already have an account?{' '}
-                  <Text
-                    style={styles.link}
-                    onPress={() => router.replace('/(auth)/sign-in')}
-                  >
-                    Log in
-                  </Text>
-                </Text>
+                <View style={styles.footerRow}>
+                  <Text style={styles.footerText}>Already have an account?</Text>
+                  <Pressable onPress={() => router.push('/(auth)/sign-in')} hitSlop={8}>
+                    <Text style={styles.link}>Log in</Text>
+                  </Pressable>
+                </View>
               </View>
             </GlassCard>
           </ScrollView>
@@ -230,6 +227,11 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 24,
     alignItems: 'center',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   footerText: {
     color: 'rgba(255,255,255,0.5)',

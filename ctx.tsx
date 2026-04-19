@@ -40,6 +40,7 @@ type SessionContextValue = {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 const JWT_STORE_KEY = 'anivartee_jwt';
+const SIMPLE_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof ApiError) {
@@ -148,6 +149,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     if (!normalizedEmail || !password) {
       return { ok: false, error: "Please enter email and password." };
+    }
+    if (!SIMPLE_EMAIL_REGEX.test(normalizedEmail)) {
+      return { ok: false, error: "Please enter a valid email address." };
     }
 
     try {

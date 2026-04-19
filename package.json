@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "dev:backend": "concurrently \"cd \\\"web app/server/user-service\\\" && npm run dev\" \"cd \\\"web app/server/post-service\\\" && npm run dev\" \"cd \\\"web app/server/points-service\\\" && npm run dev\" \"cd \\\"web app/server/payment-service\\\" && npm run dev\"",
+    "dev:backend": "concurrently \"cd \\\"webapp/server/user-service\\\" && npm run dev\" \"cd \\\"webapp/server/post-service\\\" && npm run dev\" \"cd \\\"webapp/server/points-service\\\" && npm run dev\" \"cd \\\"webapp/server/payment-service\\\" && npm run dev\"",
     "setup:env": "node ./scripts/setup-env.js"
   },
   "dependencies": {

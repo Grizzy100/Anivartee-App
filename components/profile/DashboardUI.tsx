@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { memo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, type TextStyle, type ViewStyle } from 'react-native';
 
@@ -49,7 +50,7 @@ export const ProfileCard = ({ user }: { user: any }) => (
   <View style={styles.profileCard}>
     <View style={styles.profileTopRow}>
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{user?.username?.charAt(0).toUpperCase() || 'U'}</Text>
+        <Text style={styles.avatarText}>{String(user?.username || 'U').charAt(0).toUpperCase() || 'U'}</Text>
       </View>
       <View style={styles.profileInfo}>
         <Text style={styles.username}>{user?.username || 'Username'}</Text>
@@ -112,6 +113,8 @@ const getStatusColor = (status: string) => {
     case 'PENDING':
       return DASH_COLORS.subtext;
     case 'UNDER REVIEW':
+    case 'UNDER_REVIEW':
+    case 'CLAIMED':
       return DASH_COLORS.warning;
     case 'VALIDATED':
     case 'VERIFIED':
@@ -123,48 +126,65 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export const DashboardPostCard = memo(({ post }: { post: any }) => (
-  <TouchableOpacity style={styles.postCard} activeOpacity={0.96}>
-    <View style={styles.postHeader}>
-      <View style={styles.postHeaderLeft}>
-        <View style={styles.postAvatar}>
-          <Text style={styles.postAvatarText}>{post.author?.charAt(0).toUpperCase() || 'U'}</Text>
-        </View>
-        <View>
-          <View style={styles.postAuthorRow}>
-            <Text style={styles.postAuthor}>{post.author}</Text>
-            <Badge text="NOVICE" color={DASH_COLORS.primary} style={{ paddingHorizontal: 6, paddingVertical: 2 }} />
+export const DashboardPostCard = memo(({ post }: { post: any }) => {
+  const router = useRouter();
+  const authorName =
+    typeof post?.author === 'string'
+      ? post.author
+      : post?.author?.username || post?.author?.displayName || 'Unknown';
+  const authorInitial = authorName.charAt(0).toUpperCase() || 'U';
+  const statusText = String(post?.status || 'PENDING').toUpperCase().replace(/_/g, ' ');
+  const postDate = post?.date || (post?.createdAt ? new Date(post.createdAt).toLocaleDateString() : '');
+  const postBody = post?.body || post?.description || '';
+  const likeCount = post?.likes ?? post?.totalLikes ?? 0;
+  const commentCount = post?.comments ?? post?.commentsCount ?? 0;
+  
+  const handlePress = () => {
+    router.push({ pathname: '/posts/[id]' as any, params: { id: post.id } });
+  };
+
+  return (
+    <TouchableOpacity style={styles.postCard} activeOpacity={0.96} onPress={handlePress}>
+      <View style={styles.postHeader}>
+        <View style={styles.postHeaderLeft}>
+          <View style={styles.postAvatar}>
+            <Text style={styles.postAvatarText}>{authorInitial}</Text>
           </View>
-          <Text style={styles.postDate}>{post.date}</Text>
+          <View>
+            <View style={styles.postAuthorRow}>
+              <Text style={styles.postAuthor}>{authorName}</Text>
+              <Badge text="NOVICE" color={DASH_COLORS.primary} style={{ paddingHorizontal: 6, paddingVertical: 2 }} />
+            </View>
+            <Text style={styles.postDate}>{postDate}</Text>
+          </View>
+        </View>
+        <View style={styles.postHeaderRight}>
+          <View style={styles.statusBadge}>
+            <Text style={[styles.statusText, { color: getStatusColor(statusText) }]}>{statusText}</Text>
+          </View>
+          <TouchableOpacity style={styles.menuBtn}>
+            <Ionicons name="ellipsis-horizontal" size={16} color={DASH_COLORS.subtext} />
+          </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.postHeaderRight}>
-        <View style={styles.statusBadge}>
-          <Ionicons name="time-outline" size={12} color={getStatusColor(post.status)} />
-          <Text style={[styles.statusText, { color: getStatusColor(post.status) }]}>{post.status.toUpperCase()}</Text>
+
+      <Text style={styles.postTitle}>{post.title}</Text>
+      {!!postBody && <Text style={styles.postBody}>{postBody}</Text>}
+
+      <View style={styles.divider} />
+
+      <View style={styles.postActions}>
+        <View style={styles.postActionsLeft}>
+          <IconText icon="heart-outline" text={likeCount} style={{ marginRight: DASH_SPACING.lg }} />
+          <IconText icon="flag-outline" text="" style={{ marginRight: DASH_SPACING.lg }} />
+          <IconText icon="chatbubble-outline" text={commentCount} style={{ marginRight: DASH_SPACING.lg }} />
+          <IconText icon="share-social-outline" text="Share" />
         </View>
-        <TouchableOpacity style={styles.menuBtn}>
-          <Ionicons name="ellipsis-horizontal" size={16} color={DASH_COLORS.subtext} />
-        </TouchableOpacity>
+        <IconText icon="bookmark-outline" text="Save" />
       </View>
-    </View>
-
-    <Text style={styles.postTitle}>{post.title}</Text>
-    <Text style={styles.postBody}>{post.body}</Text>
-
-    <View style={styles.divider} />
-
-    <View style={styles.postActions}>
-      <View style={styles.postActionsLeft}>
-        <IconText icon="heart-outline" text={post.likes} style={{ marginRight: DASH_SPACING.lg }} />
-        <IconText icon="flag-outline" text="" style={{ marginRight: DASH_SPACING.lg }} />
-        <IconText icon="chatbubble-outline" text={post.comments} style={{ marginRight: DASH_SPACING.lg }} />
-        <IconText icon="share-social-outline" text="Share" />
-      </View>
-      <IconText icon="bookmark-outline" text="Save" />
-    </View>
-  </TouchableOpacity>
-));
+    </TouchableOpacity>
+  );
+});
 
 const styles = StyleSheet.create({
   profileCard: {
@@ -302,7 +322,7 @@ const styles = StyleSheet.create({
   },
   postCard: {
     backgroundColor: DASH_COLORS.card,
-    borderRadius: DASH_RADIUS.lg,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: DASH_COLORS.border,
     padding: DASH_SPACING.lg,
